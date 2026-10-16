@@ -1,5 +1,12 @@
 return {
   {
+    dir = vim.fn.stdpath("config") .. "/vendor/nvim-treesitter",
+    lazy = false,
+    config = function()
+      require("config.treesitter")
+    end,
+  },
+  {
     dir = vim.fn.stdpath("config") .. "/vendor/blink.cmp",
     lazy = false,
     opts = {

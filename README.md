@@ -33,6 +33,29 @@ The pinned upstream revision is in the extension's `VENDORED.md`.
 needed. `<Space>f` lists Git-tracked files. `<Space>sg` searches file contents
 and requires ripgrep. The native sorter does not change these search tools.
 
+## Tree-sitter highlighting
+
+The vendored nvim-treesitter plugin uses its Neovim 0.11-compatible `master`
+implementation, pinned in `vendor/nvim-treesitter/VENDORED.md`. Highlighting
+is enabled; indentation, folding, and incremental selection retain their
+existing behavior.
+
+Run `:TSInstallConfigured` to install or update parsers for Lua, Python,
+JavaScript/JSX, TypeScript, TSX, C, C++, JSON, Markdown (including inline
+markup and code injections), Vim script, Vim help, and Tree-sitter queries.
+The command downloads source revisions from the vendored parser lockfile and
+compiles them locally. It requires network access, a C compiler, Git, curl,
+tar, and Tree-sitter CLI 0.25.x (this machine has 0.25.3). Some grammar
+generation also needs Node.js. Parsers live under `stdpath("data")/treesitter`,
+outside this repository, and must be installed on each machine.
+
+Normal startup never installs or updates parsers. Installed parsers work
+offline; files without a supported parser keep ordinary syntax highlighting.
+After changing the vendored plugin revision, rerun `:TSInstallConfigured`
+and restart Neovim to keep parser libraries and highlighting queries aligned.
+Use `:TSInstallInfo` and `:checkhealth nvim-treesitter` to diagnose missing
+parsers; `:Inspect` shows highlighting under the cursor.
+
 ## Language support
 
 The vendored nvim-lspconfig supplies server configurations. Server executables
