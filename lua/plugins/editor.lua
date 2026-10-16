@@ -13,4 +13,11 @@ return {
       { "<leader>e", "<cmd>Oil<cr>", desc = "Open file explorer" },
     },
   },
+  {
+    dir = vim.fn.stdpath("config") .. "/vendor/nvim-lspconfig",
+    lazy = false,
+    config = function()
+      require("config.lsp")
+    end,
+  },
 }
