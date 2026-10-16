@@ -9,6 +9,14 @@ return {
 	},
 	{
     dir = vim.fn.stdpath("config") .. "/vendor/telescope.nvim",
+    dependencies = {
+      "plenary.nvim",
+      "popup.nvim",
+      {
+        dir = vim.fn.stdpath("config") .. "/vendor/telescope-fzf-native.nvim",
+        build = "make",
+      },
+    },
         config = function()
         local telescope = require('telescope').setup {
           defaults = {
@@ -22,8 +30,24 @@ return {
                 end,
               },
             }
-          }
+          },
+          extensions = {
+            fzf = {
+              fuzzy = true,
+              override_generic_sorter = true,
+              override_file_sorter = true,
+              case_mode = "smart_case",
+            },
+          },
         }
+        local ok = pcall(require('telescope').load_extension, 'fzf')
+        if not ok then
+          vim.notify(
+            'Telescope is using its Lua sorter. Build the native sorter with: make -C '
+              .. vim.fn.stdpath('config') .. '/vendor/telescope-fzf-native.nvim',
+            vim.log.levels.WARN
+          )
+        end
         vim.keymap.set('n', '<leader>go', require('telescope.builtin').git_status, { desc = '[G]it [O]pen status' })
         vim.keymap.set('n', '<leader>f', require('telescope.builtin').git_files, { desc = '[F]iles' })
         vim.keymap.set('n', '<leader>sf', require('telescope.builtin').find_files, { desc = '[S]earch [F]iles' })

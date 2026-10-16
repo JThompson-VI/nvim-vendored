@@ -11,6 +11,28 @@ Oil opens automatically for directory buffers (`nvim .`). Press `-` or
 Enter to open an entry, `-` to go up, and `g?` for help. Hidden files are shown.
 Edit filenames and save with `:w` to apply filesystem changes.
 
+## Telescope search
+
+Telescope uses the vendored telescope-fzf-native extension for native fuzzy
+sorting of files and other results, with smart-case matching. This builds its
+own C library and does not use the `fzf` executable.
+
+On a new machine, install make and a C compiler, then run this from the
+configuration directory:
+
+```sh
+make -C vendor/telescope-fzf-native.nvim
+```
+
+Lazy.nvim also has a `make` build hook for the extension. Generated binaries
+are ignored by Git. If the library is unavailable, Telescope warns and uses
+its built-in Lua sorter. Rebuild and restart Neovim to enable native sorting.
+The pinned upstream revision is in the extension's `VENDORED.md`.
+
+`<Space>sf` lists files using `rg --files`, falling back to fd or find when
+needed. `<Space>f` lists Git-tracked files. `<Space>sg` searches file contents
+and requires ripgrep. The native sorter does not change these search tools.
+
 ## Language support
 
 The vendored nvim-lspconfig supplies server configurations. Server executables
