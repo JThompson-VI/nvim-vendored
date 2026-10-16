@@ -29,7 +29,7 @@ platform-specific binaries and large dependency trees. Restart Neovim after
 installing a server. Add further servers in `lua/config/lsp.lua`.
 
 C and C++ use the existing Apple clangd 17 installation. The usual LSP
-navigation, diagnostics, and formatting shortcuts apply.
+navigation, diagnostics, formatting, and Blink completion shortcuts apply.
 `:LspClangdSwitchSourceHeader` switches between source and header files.
 For projects with custom include paths, defines, or compiler flags, provide
 `compile_commands.json` in the project root (for CMake, configure with
@@ -37,6 +37,21 @@ For projects with custom include paths, defines, or compiler flags, provide
 the build directory to the project root). Simple projects can use
 `compile_flags.txt` instead. Without either, clangd uses fallback compile flags.
 See the [clangd project setup guide](https://clangd.llvm.org/installation#project-setup).
+
+Completion uses vendored blink.cmp v1.10.2 with automatic suggestions from
+LSP, filesystem paths, and words in visible buffers. Buffer words appear
+alongside LSP and path results, including when no server is attached.
+`Ctrl-Space` opens suggestions (or toggles documentation when already open),
+`Ctrl-J` / `Ctrl-K` select the next / previous candidate, `Ctrl-Y` accepts it, and `Ctrl-E`
+dismisses the menu. Nothing is preselected or inserted until requested;
+Enter inserts a newline. Tab / Shift-Tab move through active snippet
+placeholders. Server-provided snippets use Neovim's built-in snippet engine;
+no additional snippet collection is installed.
+
+Blink uses its Lua matcher, so startup requires no binary download or Rust
+build. This trades the Rust matcher's typo resistance and performance for
+portability. Command-line and terminal completion are disabled.
+See `vendor/blink.cmp/VENDORED.md` for the pinned upstream revision.
 
 LSP buffers have these shortcuts (leader is Space):
 
