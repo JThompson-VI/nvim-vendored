@@ -13,10 +13,28 @@ vim.api.nvim_create_autocmd("LspAttach", {
     map("gD", vim.lsp.buf.declaration, "Go to declaration")
     map("gr", vim.lsp.buf.references, "Find references")
     map("gi", vim.lsp.buf.implementation, "Go to implementation")
-    map("K", vim.lsp.buf.hover, "Hover documentation")
+    map("K", function()
+      vim.lsp.buf.hover({ border = "rounded" })
+    end, "Hover documentation")
     map("<leader>rn", vim.lsp.buf.rename, "Rename symbol")
     map("<leader>ca", vim.lsp.buf.code_action, "Code action")
     map("<leader>ld", vim.diagnostic.open_float, "Line diagnostics")
+    map("<leader>lj", function()
+      vim.diagnostic.jump({
+        count = 1,
+        severity = vim.diagnostic.severity.ERROR,
+        wrap = true,
+        float = { severity = vim.diagnostic.severity.ERROR },
+      })
+    end, "Next LSP error")
+    map("<leader>lk", function()
+      vim.diagnostic.jump({
+        count = -1,
+        severity = vim.diagnostic.severity.ERROR,
+        wrap = true,
+        float = { severity = vim.diagnostic.severity.ERROR },
+      })
+    end, "Previous LSP error")
     map("<leader>lf", function()
       vim.lsp.buf.format({ bufnr = event.buf, async = true })
     end, "Format with LSP")
@@ -43,6 +61,7 @@ vim.lsp.config("lua_ls", {
 -- Only enable installed servers so other machines can start without errors.
 for server, executable in pairs({
   clangd = "clangd",
+  gopls = "gopls",
   lua_ls = "lua-language-server",
   pyright = "pyright-langserver",
   ts_ls = "typescript-language-server",

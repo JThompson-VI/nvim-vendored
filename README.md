@@ -41,7 +41,8 @@ is enabled; indentation, folding, and incremental selection retain their
 existing behavior.
 
 Run `:TSInstallConfigured` to install or update parsers for Lua, Python,
-JavaScript/JSX, TypeScript, TSX, C, C++, JSON, Markdown (including inline
+JavaScript/JSX, TypeScript, TSX, C, C++, Go (including go.mod, go.sum, and
+go.work), JSON, Markdown (including inline
 markup and code injections), Vim script, Vim help, and Tree-sitter queries.
 The command downloads source revisions from the vendored parser lockfile and
 compiles them locally. It requires network access, a C compiler, Git, curl,
@@ -65,6 +66,7 @@ are separate system/project dependencies; only installed servers are enabled:
 | --- | --- |
 | Lua | `lua-language-server` |
 | C / C++ | `clangd` |
+| Go | `gopls` (also needs the Go toolchain) |
 | Python | `pyright-langserver` |
 | JavaScript / TypeScript (including JSX / TSX) | `typescript-language-server` (also needs `typescript`) |
 
@@ -72,6 +74,18 @@ All listed servers are installed on the current machine. Plugin source stays in
 `vendor/`; server runtimes stay outside this repository to avoid vendoring
 platform-specific binaries and large dependency trees. Restart Neovim after
 installing a server. Add further servers in `lua/config/lsp.lua`.
+
+Go uses `gopls` for completion, navigation, diagnostics, code actions, and
+formatting through the existing LSP shortcuts. Open files inside a Go module
+(`go.mod`) or workspace (`go.work`) so gopls can discover the project. To
+install gopls into a directory on PATH on this machine:
+
+```sh
+GOBIN="$HOME/.local/bin" go install golang.org/x/tools/gopls@latest
+```
+
+Run `:TSInstallConfigured` after setup to install the Go highlighting parsers.
+`<Space>lf` formats the current Go buffer; formatting on save is not enabled.
 
 C and C++ use the existing Apple clangd 17 installation. The usual LSP
 navigation, diagnostics, formatting, and Blink completion shortcuts apply.
@@ -108,6 +122,8 @@ LSP buffers have these shortcuts (leader is Space):
 | `<Space>rn` | Rename symbol |
 | `<Space>ca` | Code action |
 | `<Space>ld` | Line diagnostics |
+| `<Space>lj` | Next error and its message (wraps within the current buffer) |
+| `<Space>lk` | Previous error and its message (wraps within the current buffer) |
 | `<Space>lf` | Format using an attached server that supports formatting |
 | `[d` / `]d` | Previous / next diagnostic (Neovim defaults) |
 

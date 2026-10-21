@@ -1,6 +1,7 @@
 local parser_dir = vim.fn.stdpath("data") .. "/treesitter"
 local languages = {
   "lua", "python", "javascript", "typescript", "tsx", "c", "cpp",
+  "go", "gomod", "gosum", "gowork",
   "json", "markdown", "markdown_inline", "vim", "vimdoc", "query",
 }
 
