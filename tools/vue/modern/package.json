@@ -1,0 +1,10 @@
+{
+  "name": "nvim-vue-modern",
+  "private": true,
+  "dependencies": {
+    "@vue/language-server": "3.3.13",
+    "@vue/typescript-plugin": "3.3.13",
+    "typescript": "5.9.3",
+    "typescript-language-server": "5.1.3"
+  }
+}

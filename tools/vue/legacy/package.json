@@ -1,0 +1,10 @@
+{
+  "name": "nvim-vue-legacy",
+  "private": true,
+  "dependencies": {
+    "@vue/language-server": "3.0.8",
+    "@vue/typescript-plugin": "3.0.8",
+    "typescript": "5.9.3",
+    "typescript-language-server": "5.1.3"
+  }
+}

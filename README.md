@@ -42,7 +42,7 @@ existing behavior.
 
 Run `:TSInstallConfigured` to install or update parsers for Lua, Python,
 JavaScript/JSX, TypeScript, TSX, C, C++, Go (including go.mod, go.sum, and
-go.work), JSON, Markdown (including inline
+go.work), Vue, HTML, CSS, SCSS, JSON, Markdown (including inline
 markup and code injections), Vim script, Vim help, and Tree-sitter queries.
 The command downloads source revisions from the vendored parser lockfile and
 compiles them locally. It requires network access, a C compiler, Git, curl,
@@ -86,6 +86,104 @@ GOBIN="$HOME/.local/bin" go install golang.org/x/tools/gopls@latest
 
 Run `:TSInstallConfigured` after setup to install the Go highlighting parsers.
 `<Space>lf` formats the current Go buffer; formatting on save is not enabled.
+
+### Vue and Nuxt
+
+Vue single-file components use the official Vue language server together with
+`ts_ls` and the matching Vue TypeScript plugin. Existing Blink completion and
+LSP shortcuts apply in templates and scripts. Vue 2 applications use a legacy
+profile; Vue 3 applications use a modern profile. Profiles are selected from
+the installed Vue package, falling back to the installed Nuxt major version.
+Separate application roots can use different profiles in the same session.
+The nearest `package.json` defines the application root; dependencies can be
+hoisted into a parent directory. npm and pnpm node_modules layouts are supported;
+Yarn Plug'n'Play without node_modules is not configured.
+
+Install Node.js 20 or newer, npm, and the Tree-sitter build prerequisites above.
+Your Nuxt project may require a newer supported Node.js release; use its own
+documented runtime requirements when preparing or running the application.
+From this configuration directory, run:
+
+```sh
+sh tools/vue/install.sh
+```
+
+This explicitly installs both pinned profiles into
+`stdpath("data")/vue-tools/{legacy,modern}`. It does not modify your work
+repositories or your global npm installation. An optional first argument sets
+the Neovim data directory, useful with custom XDG paths or NVIM_APPNAME.
+The manifests and npm lockfiles in `tools/vue/` are committed; node_modules
+stays outside the configuration. Installation uses `npm ci` with lifecycle
+scripts disabled. Rerun the same command after tool lockfiles change.
+Startup does not install or download anything.
+
+The legacy profile pins Vue Language Tools 3.0.8, which retains Vue 2 support.
+The modern profile pins 3.3.13; both use TypeScript 5.9.3 and
+typescript-language-server 5.1.3.
+An application's installed TypeScript 5.9 takes precedence; older build-time
+TypeScript installations remain untouched and the editor uses the profile's
+TypeScript instead. TypeScript 6/7 projects also use this editor fallback and
+may need a future tool-profile update for newer compiler features.
+
+Install the work project's dependencies with its usual package manager.
+Restart Neovim and run `:TSInstallConfigured` for Vue and embedded highlighting.
+Open a `.vue` file and run `:VueToolsInfo` to see the selected application root,
+profile, dependency versions, and TypeScript path. `:LspInfo` should show
+`vue_ls` and `ts_ls` attached; ordinary JS/TS files in the application use
+the same profile's `ts_ls`.
+
+**Vue 2 / Nuxt 2:** keep the application's existing tsconfig.json or
+jsconfig.json. Ensure it includes `.vue` sources and describes aliases such
+as `~/*` and `@/*` using the actual source directory. If automatic Vue target
+detection needs an override, add this top-level field to that project config
+(use `2.7` for Vue 2.7, `2` for Vue 2.5/2.6):
+
+```json
+{ "vueCompilerOptions": { "target": 2 } }
+```
+
+For TypeScript Nuxt 2 projects, retain existing `@nuxt/types` declarations
+and installed module types. For JavaScript projects, jsconfig.json can enable
+navigation without enabling `checkJs`. Nuxt 2 generated globals, Vuex stores,
+injected plugins, and global components may need explicit declarations in the
+application; installing an editor server cannot infer all of them.
+
+**Modern Nuxt:** preserve the project's Nuxt-generated TypeScript setup
+(older versions extend `.nuxt/tsconfig.json`; newer versions use generated
+project references). After installing dependencies, run the project's local
+Nuxt prepare command, for example:
+
+```sh
+./node_modules/.bin/nuxt prepare
+```
+
+Missing `.nuxt` declarations commonly cause unresolved composables, components,
+or aliases. Regenerate them after changing Nuxt modules/configuration. Neovim
+does not run project preparation commands automatically.
+
+If detection is ambiguous, set a personal override in `init.lua` **before**
+`require("config.lazy")`, using the absolute nearest package.json directory:
+
+```lua
+vim.g.vue_project_profiles = {
+  ["/absolute/path/to/old-app"] = "legacy",
+  ["/absolute/path/to/new-app"] = "modern",
+}
+```
+
+Restart after installing dependencies or changing overrides; detection is cached
+for the session. If no profile is selected, install application dependencies or
+add an override. If tools are missing, rerun the installer. For missing aliases
+or imports, check the application's tsconfig/jsconfig and generated declarations
+before changing servers. Formatting remains manual
+through `<Space>lf` when supported; ESLint integration and formatting on save
+are not enabled by this setup.
+
+Validated with Vue 2.5.22, 2.7.16, and 3.5.22 for completion, hover, definitions,
+and diagnostics, plus Nuxt 2.15.8 aliases and Nuxt 4.6.2 generated types,
+composables, and component navigation. This checks editor integration, rather
+than application builds; individual projects can still need their own type
+declarations and configuration.
 
 C and C++ use the existing Apple clangd 17 installation. The usual LSP
 navigation, diagnostics, formatting, and Blink completion shortcuts apply.

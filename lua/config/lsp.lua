@@ -57,6 +57,8 @@ vim.lsp.config("lua_ls", {
   },
 })
 
+require("config.vue").setup()
+
 -- Server binaries remain system/project dependencies; plugin code is vendored.
 -- Only enable installed servers so other machines can start without errors.
 for server, executable in pairs({
