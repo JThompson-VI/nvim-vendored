@@ -1,8 +1,154 @@
 # Neovim configuration
 
-Lua configuration using locally vendored plugins and Lazy.nvim. Use Neovim
-0.11+; the vendored nvim-lspconfig recommends 0.11.3+ (basic attachment is also
-tested on this machine's 0.11.0).
+Lua configuration using locally vendored plugins and Lazy.nvim. Requires
+**Neovim 0.12 or newer**; tested on macOS with Neovim 0.12.6 and Tree-sitter
+CLI 0.27.1. The same configuration targets Ubuntu 22.04 or newer; Ubuntu
+installation steps below have not been executed in this macOS environment.
+
+## Installation and upgrades
+
+### macOS (Homebrew)
+
+For a new installation:
+
+```sh
+brew install neovim tree-sitter-cli ripgrep fd
+xcode-select --install  # if the C compiler / make are missing
+```
+
+For an existing Homebrew installation, retain old packages while upgrading:
+
+```sh
+HOMEBREW_NO_INSTALL_CLEANUP=1 brew upgrade neovim
+HOMEBREW_NO_INSTALL_CLEANUP=1 brew install tree-sitter-cli
+nvim --version
+tree-sitter --version
+```
+
+### Ubuntu 22.04 or newer
+
+Use the official versioned archive to install the same Neovim release without
+replacing Ubuntu's system packages. First check your release and architecture:
+
+```sh
+cat /etc/os-release
+uname -m
+ldd --version
+sudo apt update
+sudo apt install build-essential curl tar gzip git ripgrep fd-find inotify-tools
+```
+
+Download the archive for your architecture and place it in your home directory:
+
+```sh
+case "$(uname -m)" in
+  x86_64) nvim_arch=x86_64 ;;
+  aarch64|arm64) nvim_arch=arm64 ;;
+  *) echo "Unsupported architecture"; exit 1 ;;
+esac
+curl -fL "https://github.com/neovim/neovim/releases/download/v0.12.6/nvim-linux-${nvim_arch}.tar.gz" \
+  -o /tmp/nvim-0.12.6.tar.gz
+mkdir -p "$HOME/.local/opt/nvim-0.12.6" "$HOME/.local/bin"
+tar -xzf /tmp/nvim-0.12.6.tar.gz --strip-components=1 -C "$HOME/.local/opt/nvim-0.12.6"
+export PATH="$HOME/.local/opt/nvim-0.12.6/bin:$HOME/.local/bin:$PATH"
+command -v nvim
+nvim --version
+```
+
+Add that PATH export to your shell configuration (for example `~/.bashrc`).
+Keep the entire extracted directory together: Neovim needs its matching
+runtime files. If the executable reports a missing GLIBC version, use a
+compatible distribution or build the v0.12.6 tag from source following the
+[official build instructions](https://github.com/neovim/neovim/blob/v0.12.6/BUILD.md).
+Official archives and AppImages are available on the
+[release page](https://github.com/neovim/neovim/releases/tag/v0.12.6).
+
+Install the **Tree-sitter CLI**, separately from Neovim's Tree-sitter library.
+The Ubuntu apt version may be too old; this installs the pinned upstream binary:
+
+```sh
+case "$(uname -m)" in
+  x86_64) ts_arch=x64 ;;
+  aarch64|arm64) ts_arch=arm64 ;;
+  *) echo "Unsupported architecture"; exit 1 ;;
+esac
+curl -fL "https://github.com/tree-sitter/tree-sitter/releases/download/v0.27.1/tree-sitter-linux-${ts_arch}.gz" \
+  -o /tmp/tree-sitter-0.27.1.gz
+gzip -dc /tmp/tree-sitter-0.27.1.gz > "$HOME/.local/bin/tree-sitter"
+chmod u+x "$HOME/.local/bin/tree-sitter"
+tree-sitter --version
+```
+
+Use a CLI version >=0.26.1, installed through a package manager or an official
+binary, rather than npm. If the binary cannot run on your system, a Rust
+toolchain provides another installation method:
+`cargo install tree-sitter-cli --version 0.27.1 --locked` (add `~/.cargo/bin`
+to PATH).
+
+### Complete setup on each machine
+
+Place this repository at `~/.config/nvim`. From that directory:
+
+```sh
+make -C vendor/telescope-fzf-native.nvim
+sh tools/vue/install.sh  # Vue/Nuxt: requires Node.js >=20 and npm
+nvim
+```
+
+Inside Neovim, run `:TSInstallConfigured` and restart. Install your language
+servers separately as described below; Vue/Nuxt profiles have their own
+installer. Typical Ubuntu options include `sudo apt install clangd` for C/C++,
+`npm install -g pyright typescript-language-server typescript@5.9.3` for
+Python/TypeScript (use a user-managed Node installation), and the Go command
+below for gopls. Install `lua-language-server` separately using its
+[official installation instructions](https://luals.github.io/#neovim-install).
+Check each executable with `command -v`; servers not installed are skipped.
+
+Compile Telescope's sorter and Tree-sitter parsers on **each** OS/architecture;
+do not copy macOS libraries to Ubuntu. The `fd-find` Ubuntu package provides
+`fdfind`, which Telescope supports. Clipboard integration on Ubuntu additionally
+needs a provider such as `wl-clipboard` on Wayland or `xclip` on X11.
+`inotify-tools` supplies `inotifywait` for efficient LSP file watching on Linux.
+
+### Recovery from the 0.11 migration
+
+The migration keeps the old `stdpath("data")/treesitter` directory and installs
+new parsers into `treesitter-0.12`. A copy of the pre-upgrade config and parsers
+is stored on this Mac in `~/.local/share/nvim/backups/pre-0.12-20261021/`.
+Restore the config archive **together with Neovim 0.11** if rolling back;
+the current configuration intentionally refuses to run on 0.11.
+
+Homebrew's retained 0.11 keg needs its old Tree-sitter library, whose `opt`
+symlink now points to the newer version. To verify the old executable without
+changing the active installation:
+
+```sh
+DYLD_LIBRARY_PATH=/opt/homebrew/Cellar/tree-sitter/0.25.3/lib \
+  /opt/homebrew/Cellar/neovim/0.11.0/bin/nvim --version
+```
+
+Extract the backup into a separate recovery directory first; avoid overwriting
+newer configuration work. Old kegs and their dependencies remain available
+only until Homebrew cleanup removes them. On Ubuntu, switching back requires
+both the previous executable on PATH and the matching saved configuration.
+
+### Validation
+
+After setup, `:checkhealth nvim-treesitter`, `:LspInfo`, and `:VueToolsInfo`
+help confirm tool availability. From the configuration directory, this smoke
+check exercises the configured parsers and injections, native Telescope sorting,
+and basic Oil/Gitsigns/Harpoon behavior (it creates a temporary Git repository):
+
+```sh
+nvim --headless -i NONE -n '+luafile tests/smoke.lua' '+qa!'
+```
+
+The 0.12.6 migration was tested on macOS: all 21 configured parsers and query
+dependencies load, JSX/TSX and Vue/Markdown injections work, and the editor
+smoke check passes. Live checks covered Lua, Python, C/C++, Go, TypeScript,
+Vue 2.5/2.7/3.5, and Nuxt 2.15/4.6, plus hover styling and error-navigation
+floats. Other vendored plugins were retained because these checks passed.
+Ubuntu commands and platform-specific builds still need validation on Ubuntu.
 
 ## File explorer
 
@@ -35,27 +181,30 @@ and requires ripgrep. The native sorter does not change these search tools.
 
 ## Tree-sitter highlighting
 
-The vendored nvim-treesitter plugin uses its Neovim 0.11-compatible `master`
-implementation, pinned in `vendor/nvim-treesitter/VENDORED.md`. Highlighting
-is enabled; indentation, folding, and incremental selection retain their
-existing behavior.
+The vendored nvim-treesitter plugin uses its Neovim 0.12 `main` implementation,
+pinned in `vendor/nvim-treesitter/VENDORED.md`. Native highlighting is enabled;
+indentation, folding, and incremental selection retain their existing behavior.
 
 Run `:TSInstallConfigured` to install or update parsers for Lua, Python,
 JavaScript/JSX, TypeScript, TSX, C, C++, Go (including go.mod, go.sum, and
 go.work), Vue, HTML, CSS, SCSS, JSON, Markdown (including inline
 markup and code injections), Vim script, Vim help, and Tree-sitter queries.
-The command downloads source revisions from the vendored parser lockfile and
-compiles them locally. It requires network access, a C compiler, Git, curl,
-tar, and Tree-sitter CLI 0.25.x (this machine has 0.25.3). Some grammar
-generation also needs Node.js. Parsers live under `stdpath("data")/treesitter`,
-outside this repository, and must be installed on each machine.
+The command downloads source revisions pinned in the vendored
+`lua/nvim-treesitter/parsers.lua` table and compiles them locally. It installs
+missing languages and query dependencies, updates changed revisions, and
+checks that configured parsers and highlight queries load. It requires network
+access, a C compiler, curl, tar, and Tree-sitter CLI >=0.26.1 (tested: 0.27.1).
+Parsers and installed queries live under `stdpath("data")/treesitter-0.12`,
+outside this repository, and must be installed on each machine. Bundled
+queries remain vendored; some query files come from pinned grammar sources.
 
 Normal startup never installs or updates parsers. Installed parsers work
 offline; files without a supported parser keep ordinary syntax highlighting.
 After changing the vendored plugin revision, rerun `:TSInstallConfigured`
 and restart Neovim to keep parser libraries and highlighting queries aligned.
-Use `:TSInstallInfo` and `:checkhealth nvim-treesitter` to diagnose missing
-parsers; `:Inspect` shows highlighting under the cursor.
+Use `:TSLog` and `:checkhealth nvim-treesitter` to diagnose installation
+problems; `:Inspect` shows highlighting under the cursor. The old
+`:TSInstallInfo` and `nvim-treesitter.configs` API are no longer used.
 
 ## Language support
 

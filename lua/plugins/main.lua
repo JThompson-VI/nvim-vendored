@@ -92,7 +92,7 @@ return {
         local gs = package.loaded.gitsigns
 
         local function map(mode, l, r, desc)
-          vim.keymap.set(mode, l, r, { buffer = buffer, desc = desc })
+          vim.keymap.set(mode, l, r, { buf = buffer, desc = desc })
         end
 
         map('n', '<leader>gj', gs.next_hunk, "Next Hunk")

@@ -17,6 +17,44 @@ local function warn(message)
   vim.schedule(function() vim.notify(message, vim.log.levels.WARN) end)
 end
 
+-- 0.12 represents JSON null as vim.NIL. Always send a response, including
+-- failed TypeScript requests, so Vue can release its pending request.
+local function vue_on_init(client)
+  client.handlers["tsserver/request"] = function(_, result, context)
+    if type(result) ~= "table" or type(result[1]) ~= "table" then return end
+    local id, command, payload = unpack(result[1])
+    local function forward(attempt)
+      local ts_client
+      for _, candidate in ipairs(vim.lsp.get_clients({ name = "ts_ls", bufnr = context.bufnr })) do
+        if candidate.config.root_dir == client.config.root_dir then
+          ts_client = candidate
+          break
+        end
+      end
+      local function respond(body)
+        client:notify("tsserver/response", { { id, body == nil and vim.NIL or body } })
+      end
+      if not ts_client then
+        if attempt < 10 then
+          vim.defer_fn(function() forward(attempt + 1) end, 100)
+        else
+          respond(nil)
+          warn("Vue: no TypeScript client attached for " .. client.config.root_dir)
+        end
+        return
+      end
+      ts_client:exec_cmd({
+        title = "Vue TypeScript request",
+        command = "typescript.tsserverRequest",
+        arguments = { command, payload },
+      }, { bufnr = context.bufnr }, function(_, response)
+        respond(type(response) == "table" and response.body or nil)
+      end)
+    end
+    forward(0)
+  end
+end
+
 function M.project(bufnr)
   local filename = vim.api.nvim_buf_get_name(bufnr)
   if filename == "" then return end
@@ -80,6 +118,12 @@ local function start(bufnr, project)
   ts_config.name = "ts_ls"
   ts_config.root_dir = project.root
   ts_config.cmd = { "node", ts_server, "--stdio" }
+  ts_config.filetypes = vim.list_extend(vim.deepcopy(script_types), { "vue" })
+  local get_language_id = ts_config.get_language_id
+  ts_config.get_language_id = function(buf, filetype)
+    if filetype == "vue" then return "vue" end
+    return get_language_id and get_language_id(buf, filetype) or filetype
+  end
   ts_config.init_options = vim.tbl_deep_extend("force", ts_config.init_options or {}, {
     tsserver = { path = tsdk .. "/tsserver.js" },
     plugins = { {
@@ -96,6 +140,7 @@ local function start(bufnr, project)
     vue_config.name = "vue_ls"
     vue_config.root_dir = project.root
     vue_config.cmd = { "node", vue_server, "--stdio" }
+    vue_config.on_init = vue_on_init
     vim.lsp.start(vue_config, { bufnr = bufnr })
   end
 end
@@ -103,8 +148,13 @@ end
 function M.setup()
   local original_root = vim.lsp.config.ts_ls.root_dir
   vim.lsp.config("ts_ls", {
+    -- 0.12 detaches named clients whose enabled configuration excludes the
+    -- buffer's filetype, even when that client was started explicitly.
+    filetypes = vim.list_extend(vim.deepcopy(script_types), { "vue" }),
     root_dir = function(bufnr, on_dir)
-      if not M.project(bufnr) then original_root(bufnr, on_dir) end
+      if not M.project(bufnr) and vim.bo[bufnr].filetype ~= "vue" then
+        original_root(bufnr, on_dir)
+      end
     end,
   })
   vim.api.nvim_create_autocmd("FileType", {

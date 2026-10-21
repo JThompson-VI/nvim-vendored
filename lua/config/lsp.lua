@@ -6,7 +6,7 @@ vim.api.nvim_create_autocmd("LspAttach", {
   group = vim.api.nvim_create_augroup("user_lsp", { clear = true }),
   callback = function(event)
     local function map(lhs, rhs, desc)
-      vim.keymap.set("n", lhs, rhs, { buffer = event.buf, desc = desc })
+      vim.keymap.set("n", lhs, rhs, { buf = event.buf, desc = desc })
     end
 
     map("gd", vim.lsp.buf.definition, "Go to definition")
@@ -24,7 +24,10 @@ vim.api.nvim_create_autocmd("LspAttach", {
         count = 1,
         severity = vim.diagnostic.severity.ERROR,
         wrap = true,
-        float = { severity = vim.diagnostic.severity.ERROR },
+        on_jump = function(_, bufnr)
+          vim.diagnostic.open_float({ bufnr = bufnr, scope = "cursor", focus = false,
+            severity = vim.diagnostic.severity.ERROR })
+        end,
       })
     end, "Next LSP error")
     map("<leader>lk", function()
@@ -32,7 +35,10 @@ vim.api.nvim_create_autocmd("LspAttach", {
         count = -1,
         severity = vim.diagnostic.severity.ERROR,
         wrap = true,
-        float = { severity = vim.diagnostic.severity.ERROR },
+        on_jump = function(_, bufnr)
+          vim.diagnostic.open_float({ bufnr = bufnr, scope = "cursor", focus = false,
+            severity = vim.diagnostic.severity.ERROR })
+        end,
       })
     end, "Previous LSP error")
     map("<leader>lf", function()
